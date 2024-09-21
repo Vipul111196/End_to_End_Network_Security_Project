@@ -1,0 +1,15 @@
+python-dotenv
+pandas
+numpy
+pymongo
+certifi
+pymongo[srv]
+scikit-learn
+mlflow
+pyaml
+dagshub
+fastapi
+uvicorn
+python-multipart
+
+# -e . # This is the path to the package you want to install in editable mode. We use this to install the package we are developing in the current environment.
