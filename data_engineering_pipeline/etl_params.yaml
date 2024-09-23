@@ -1,0 +1,4 @@
+MongoDB:
+  file_path: "Dataset/raw/phisingData.csv"
+  MongoDB_database: "vipultyagi"
+  Collection: "Network_Security_Data"
