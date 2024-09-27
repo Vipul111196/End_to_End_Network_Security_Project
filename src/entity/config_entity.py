@@ -18,5 +18,16 @@ class MLOpsPipelineConfig: #
         self.artifact_dir=os.path.join(self.artifact_name,self.timestamp) # Create a directory with timestamp
         self.model_dir=os.path.join("final_model")
 
+# Data Ingestion Configuration
+class DataIngestionConfig:
+    def __init__(self,training_pipeline_config : MLOpsPipelineConfig):
+        self.data_ingestion_dir: str = os.path.join(training_pipeline_config.artifact_dir,mlops_pipeline.DATA_INGESTION_DIR_NAME)
+        self.feature_store_file_path: str = os.path.join(self.data_ingestion_dir, mlops_pipeline.DATA_INGESTION_FEATURE_STORE_DIR, mlops_pipeline.FILE_NAME)
+        self.training_file_path: str = os.path.join(self.data_ingestion_dir, mlops_pipeline.DATA_INGESTION_INGESTED_DIR, mlops_pipeline.TRAIN_FILE_NAME)
+        self.testing_file_path: str = os.path.join(self.data_ingestion_dir, mlops_pipeline.DATA_INGESTION_INGESTED_DIR, mlops_pipeline.TEST_FILE_NAME)
+        self.train_test_split_ratio: float = mlops_pipeline.DATA_INGESTION_TRAIN_TEST_SPLIT_RATION
+        self.collection_name: str = mlops_pipeline.DATA_INGESTION_COLLECTION_NAME
+        self.database_name: str = mlops_pipeline.DATA_INGESTION_DATABASE_NAME
+
 if __name__=="__main__":
     pass
