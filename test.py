@@ -2,9 +2,10 @@ import os
 import sys
 from src.logging.logger import logging 
 from src.exception.exception import NetworkSecurityException
-from src.entity.config_entity import MLOpsPipelineConfig, DataIngestionConfig
+from src.entity.config_entity import MLOpsPipelineConfig, DataIngestionConfig, DataValidationConfig
 from src.entity.artifact_entity import DataIngestionArtifact
 from src.components.data_ingestion import DataIngestion
+from src.components.data_validation import DataValidation
 from dotenv import load_dotenv
 
 # Loading the environment variables
@@ -23,6 +24,15 @@ if __name__ == "__main__":
         data_ingestion_artifact = data_ingestion.initiate_data_ingestion()
         logging.info("Data Ingestion process completed successfully")
         print("Data Ingestion process completed successfully")
+
+        # Data Validation Process
+        data_validation_config = DataValidationConfig(mlops_pipeline_config)
+        validation_data = DataValidation(data_ingestion_artifact, data_validation_config)
+        logging.info("Data Validation process started")
+        print("Data Validation process started")
+        validation_data_artifact = validation_data.initiate_data_validation()
+        logging.info("Data Validation process completed successfully")
+        print("Data Validation process completed successfully")
 
 
     except Exception as e:
