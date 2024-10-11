@@ -113,4 +113,25 @@ class ModelTrainer:
         
         return model_trainer_artifact
         
-    
+    def initiate_model_trainer(self)->ModelTrainerArtifact:
+        try:
+            train_file_path = self.data_transformation_artifact.transformed_train_file_path
+            test_file_path = self.data_transformation_artifact.transformed_test_file_path
+
+            #loading training array and testing array
+            train_arr = load_numpy_array_data(train_file_path)
+            test_arr = load_numpy_array_data(test_file_path)
+
+            x_train, y_train, x_test, y_test = (
+                train_arr[:, :-1],
+                train_arr[:, -1],
+                test_arr[:, :-1],
+                test_arr[:, -1],
+            )
+
+            model_trainer_artifact=self.train_model(x_train,y_train,x_test,y_test)
+            return model_trainer_artifact
+
+            
+        except Exception as e:
+            raise NetworkSecurityException(e,sys)
