@@ -2,12 +2,14 @@ import os
 import sys
 from src.logging.logger import logging 
 from src.exception.exception import NetworkSecurityException
-from src.entity.config_entity import MLOpsPipelineConfig, DataIngestionConfig, DataValidationConfig, DataTransformationConfig
+from src.entity.config_entity import MLOpsPipelineConfig, DataIngestionConfig, DataValidationConfig, DataTransformationConfig, ModelTrainerConfig
 from src.entity.artifact_entity import DataIngestionArtifact
 from src.components.data_ingestion import DataIngestion
 from src.components.data_validation import DataValidation
 from src.components.data_transformation import DataTransformation
+from src.components.model_trainer import ModelTrainer
 from dotenv import load_dotenv
+
 
 # Loading the environment variables
 load_dotenv()
@@ -43,6 +45,15 @@ if __name__ == "__main__":
         data_transformation_artifact = data_tranformation.initiate_data_transformation()
         logging.info("Data Transformation process completed successfully")
         print("Data Transformation process completed successfully")
+
+        # Model Training Process
+        model_trainer_config = ModelTrainerConfig(mlops_pipeline_config)
+        model_trainer = ModelTrainer(model_trainer_config, data_transformation_artifact)
+        logging.info("Model Training process started")
+        print("Model Training process started")
+        model_trainer.initiate_model_trainer()
+        logging.info("Model Training process completed successfully")
+        print("Model Training process completed successfully")
 
     except Exception as e:
         raise NetworkSecurityException(e,sys)

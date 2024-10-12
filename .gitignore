@@ -4,3 +4,5 @@ logs/
 Artifacts/
 final_model/
 __pycache__/
+.vscode/
+*.pdf
