@@ -22,7 +22,9 @@ import dagshub
 
 load_dotenv()
 
-os.environ["MLFLOW_TRACKING_URI"]= "http://127.0.0.1:5000" # Running Mlflow server on localhost
+dagshub.init(repo_owner= os.getenv('repo_owner'), repo_name=os.getenv('repo_name'), mlflow=True)
+
+# os.environ["MLFLOW_TRACKING_URI"]= "http://127.0.0.1:5000" # Running Mlflow server on localhost
 
 class ModelTrainer:
     def __init__(self,model_trainer_config:ModelTrainerConfig, data_transformation_artifact:DataTransformationArtifact):
@@ -33,24 +35,26 @@ class ModelTrainer:
             raise NetworkSecurityException(e,sys)
         
     def track_mlflow(self,best_model,classificationmetric):
-        mlflow.set_registry_uri(os.environ["MLFLOW_TRACKING_URI"])
+        mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
+        mlflow.set_experiment("Network Security Models") # Name of the experiment
         tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme # get the store type
+        self.best_model=best_model
+        self.classificationmetric=classificationmetric
         
         with mlflow.start_run():
-            f1_score=classificationmetric.f1_score
-            precision_score=classificationmetric.precision_score
-            recall_score=classificationmetric.recall_score
+            f1_score=self.classificationmetric.f1_score
+            precision_score=self.classificationmetric.precision_score
+            recall_score=self.classificationmetric.recall_score
 
             mlflow.log_metric("f1_score",f1_score)
             mlflow.log_metric("precision",precision_score)
             mlflow.log_metric("recall_score",recall_score)
-            mlflow.sklearn.log_model(best_model,"model")
 
             # Model registry does not work with file store
             if tracking_url_type_store != "file":
-                mlflow.sklearn.log_model(best_model, "model", registered_model_name=best_model)
+                mlflow.sklearn.log_model(self.best_model, "model", registered_model_name="Best_Model")
             else:
-                mlflow.sklearn.log_model(best_model, "model")
+                mlflow.sklearn.log_model(self.best_model, "model")
         
     def train_model(self,X_train,y_train,x_test,y_test):
         
@@ -62,11 +66,13 @@ class ModelTrainer:
                 "AdaBoost": AdaBoostClassifier(),
             }
         
+        logging.info("Models to be trained: {}".format(models.keys()))
         params= yaml.load(open("src/model_params/model_params.yaml"),Loader=yaml.FullLoader)
 
         model_report:dict=evaluate_models(X_train=X_train,y_train=y_train,X_test=x_test,y_test=y_test,
                                           models=models,param=params)
         
+        logging.info("Model Training Done")
         ## To get best model score from dict
         best_model_score = max(sorted(model_report.values()))
 
@@ -76,11 +82,14 @@ class ModelTrainer:
         ]
         best_model = models[best_model_name]
 
+        logging.info(f"Best Model: {best_model_name}")
+        logging.info(f"Best Model Score: {best_model_score}")
         # Get classification metric for train data
         y_train_pred=best_model.predict(X_train)
         classification_train_metric=get_classification_score(y_true=y_train,y_pred=y_train_pred)
         
         ## Track the experiements with mlflow
+        logging.info("Tracking the training experiments with mlflow")
         self.track_mlflow(best_model,classification_train_metric)
 
         # Get classification metric for test data
@@ -88,12 +97,15 @@ class ModelTrainer:
         classification_test_metric=get_classification_score(y_true=y_test,y_pred=y_test_pred)
 
         ## Track the experiements with mlflow
+        logging.info("Tracking the testing experiments with mlflow")
         self.track_mlflow(best_model,classification_test_metric)
 
         ## Load preprocessor object
+        logging.info("Loading preprocessor object")
         preprocessor = load_object(file_path=self.data_transformation_artifact.transformed_object_file_path)
 
         ## Save the model  
+        logging.info("Saving the trained model")
         model_dir_path = os.path.dirname(self.model_trainer_config.trained_model_file_path)
         os.makedirs(model_dir_path,exist_ok=True)
 
@@ -101,6 +113,7 @@ class ModelTrainer:
         save_object(self.model_trainer_config.trained_model_file_path,obj=Network_Model)
         
         #model pusher
+        logging.info("Pushing the model to the model local registry")
         save_object("final_model/model.pkl",best_model)
         
         ## Model Trainer Artifact
@@ -132,6 +145,5 @@ class ModelTrainer:
             model_trainer_artifact=self.train_model(x_train,y_train,x_test,y_test)
             return model_trainer_artifact
 
-            
         except Exception as e:
             raise NetworkSecurityException(e,sys)
