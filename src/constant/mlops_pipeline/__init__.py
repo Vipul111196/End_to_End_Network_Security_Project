@@ -68,6 +68,11 @@ MODEL_TRAINER_TRAINED_MODEL_NAME: str = "model.pkl"
 MODEL_TRAINER_EXPECTED_SCORE: float = 0.6
 MODEL_TRAINER_OVER_FIITING_AND_UNDER_FITTING_THRESHOLD: float = 0.05
 
+"""
+Artifacts and Model pusher to S3 bucket
+"""
+
+TRAINING_BUCKET_NAME: str = "network-security-bucket"
 
 if __name__=="__main__":
     pass
