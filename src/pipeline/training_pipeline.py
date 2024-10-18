@@ -10,6 +10,8 @@ from src.components.model_trainer import ModelTrainer
 from src.entity.config_entity import MLOpsPipelineConfig, DataIngestionConfig, DataValidationConfig, DataTransformationConfig, ModelTrainerConfig
 from src.entity.artifact_entity import DataIngestionArtifact, DataValidationArtifact, DataTransformationArtifact, ModelTrainerArtifact
 from src.constant.mlops_pipeline import SAVED_MODEL_DIR
+from src.constant.mlops_pipeline import TRAINING_BUCKET_NAME
+from src.cloud.s3_syncer import S3Sync
 import os
 
 mongo_db_url=os.getenv("MONGO_DB_URL") ## use it in each file to load it 
@@ -18,6 +20,7 @@ mongo_db_url=os.getenv("MONGO_DB_URL") ## use it in each file to load it
 class TrainingPipeline:
     def __init__(self):
         self.training_pipeline_config=MLOpsPipelineConfig()
+        self.s3_sync = S3Sync()
     
     def start_data_ingestion(self):
         try:
@@ -63,6 +66,22 @@ class TrainingPipeline:
 
         except Exception as e:
             raise NetworkSecurityException(e, sys)
+        
+    ## local artifact is going to s3 bucket    
+    def sync_artifact_dir_to_s3(self):
+        try:
+            aws_bucket_url = f"s3://{TRAINING_BUCKET_NAME}/artifact/{self.training_pipeline_config.timestamp}"
+            self.s3_sync.sync_folder_to_s3(folder = self.training_pipeline_config.artifact_dir,aws_bucket_url=aws_bucket_url)
+        except Exception as e:
+            raise NetworkSecurityException(e,sys)
+        
+    ## local final model is going to s3 bucket 
+    def sync_saved_model_dir_to_s3(self):
+        try:
+            aws_bucket_url = f"s3://{TRAINING_BUCKET_NAME}/final_model/{self.training_pipeline_config.timestamp}"
+            self.s3_sync.sync_folder_to_s3(folder = self.training_pipeline_config.model_dir,aws_bucket_url=aws_bucket_url)
+        except Exception as e:
+            raise NetworkSecurityException(e,sys)
 
     def run_pipeline(self):
         try:
@@ -71,8 +90,11 @@ class TrainingPipeline:
             data_transformation_artifact=self.start_data_transformation(data_validation_artifact=data_validation_artifact)
             model_trainer_artifact=self.start_model_trainer(data_transformation_artifact=data_transformation_artifact)
             
+            # Syncing the artifacts and model to S3
+            self.sync_artifact_dir_to_s3()
+            self.sync_saved_model_dir_to_s3()
+            
             return model_trainer_artifact
         except Exception as e:
             raise NetworkSecurityException(e,sys)
-        
     

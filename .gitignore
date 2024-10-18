@@ -6,3 +6,4 @@ final_model/
 __pycache__/
 .vscode/
 *.pdf
+mlruns/
