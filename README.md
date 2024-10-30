@@ -138,7 +138,3 @@ Contributions are welcome! Please fork the repository and submit a pull request 
 ## License
 
 This project is licensed under the MIT License. See the LICENSE file for more details.
-
----
-
-This README now includes references to Amazon ECR and ECS at the beginning and does not include the workflow specifics. Let me know if further adjustments are needed!
