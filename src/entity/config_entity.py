@@ -57,8 +57,6 @@ class ModelTrainerConfig:
         self.expected_accuracy: float = mlops_pipeline.MODEL_TRAINER_EXPECTED_SCORE
         self.overfitting_underfitting_threshold = mlops_pipeline.MODEL_TRAINER_OVER_FIITING_AND_UNDER_FITTING_THRESHOLD
 
-# Training Pipeline Configuration
-
 
 if __name__=="__main__":
     pass
