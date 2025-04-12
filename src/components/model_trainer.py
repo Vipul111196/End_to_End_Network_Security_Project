@@ -22,7 +22,8 @@ import dagshub
 
 load_dotenv()
 
-dagshub.init(repo_owner= os.getenv('repo_owner'), repo_name=os.getenv('repo_name'), mlflow=True)
+dagshub.init(repo_owner="Vipul111196", repo_name="End_to_End_Network_Security_Project", mlflow=True)
+
 
 # os.environ["MLFLOW_TRACKING_URI"]= "http://127.0.0.1:5000" # Running Mlflow server on localhost
 
