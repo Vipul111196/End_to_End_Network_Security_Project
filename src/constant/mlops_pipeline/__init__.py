@@ -72,7 +72,7 @@ MODEL_TRAINER_OVER_FIITING_AND_UNDER_FITTING_THRESHOLD: float = 0.05
 Artifacts and Model pusher to S3 bucket
 """
 
-TRAINING_BUCKET_NAME: str = "network-security-bucket"
+TRAINING_BUCKET_NAME: str = "networksecuritybucketvipul"
 
 if __name__=="__main__":
     pass
