@@ -24,8 +24,8 @@ load_dotenv()
 
 repo_owner = os.getenv("DAGSHUB_REPO_OWNER")
 repo_name = os.getenv("DAGSHUB_REPO_NAME")
-token = os.environ.get("DAGSHUB_TOKEN")
-dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True, token=token)
+os.environ["DAGSHUB_TOKEN"] = os.getenv("DAGSHUB_TOKEN")
+dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
 
 # os.environ["MLFLOW_TRACKING_URI"]= "http://127.0.0.1:5000" # Running Mlflow server on localhost
 
