@@ -11,7 +11,7 @@ from src.constant.mlops_pipeline import DATA_INGESTION_COLLECTION_NAME
 from src.constant.mlops_pipeline import DATA_INGESTION_DATABASE_NAME
 from src.utils.main_utils.utils import load_object
 from src.utils.ml_utils.model.estimator import NetworkModel
-
+from src.utils.main_utils.utils import download_from_s3
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, File, UploadFile,Request
 from uvicorn import run as app_run
@@ -27,6 +27,8 @@ from typing import List
 load_dotenv()
 mongo_db_url = os.getenv("MONGO_DB_URL")
 print(mongo_db_url)
+bucket_name = os.getenv("MODEL_BUCKET")
+
 
 # Connect to the MongoDB database
 import certifi
@@ -79,6 +81,9 @@ async def predict_route(request: Request,file: UploadFile = File(...)): # This f
     try:
         df=pd.read_csv(file.file)
         #print(df)
+        download_from_s3(bucket_name, "final_model/preprocessor.pkl", "final_model/preprocessor.pkl")
+        download_from_s3(bucket_name, "final_model/model.pkl", "final_model/model.pkl")
+
         preprocesor=load_object("final_model/preprocessor.pkl")
         final_model=load_object("final_model/model.pkl")
         network_model = NetworkModel(preprocessor=preprocesor,model=final_model)
@@ -104,6 +109,9 @@ class InstanceInput(BaseModel):
 @app.post("/predict-instance")
 async def predict_instance(input: InstanceInput):
     try:
+        download_from_s3(bucket_name, "final_model/preprocessor.pkl", "final_model/preprocessor.pkl")
+        download_from_s3(bucket_name, "final_model/model.pkl", "final_model/model.pkl")
+
         preprocessor = load_object("final_model/preprocessor.pkl")
         model = load_object("final_model/model.pkl")
         network_model = NetworkModel(preprocessor=preprocessor, model=model)

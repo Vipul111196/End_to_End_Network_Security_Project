@@ -5,6 +5,8 @@ import os,sys
 import numpy as np
 #import dill
 import pickle
+import boto3
+import os
 
 from sklearn.metrics import r2_score
 from sklearn.model_selection import GridSearchCV
@@ -107,3 +109,8 @@ def evaluate_models(X_train, y_train,X_test,y_test,models,param):
 
     except Exception as e:
         raise NetworkSecurityException(e, sys)
+    
+def download_from_s3(bucket_name, s3_key, local_path):
+    s3 = boto3.client("s3")
+    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+    s3.download_file(bucket_name, s3_key, local_path)
