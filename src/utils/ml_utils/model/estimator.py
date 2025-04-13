@@ -1,5 +1,5 @@
 from src.constant.mlops_pipeline import SAVED_MODEL_DIR,MODEL_FILE_NAME
-
+from typing import List
 import os
 import sys
 
@@ -21,3 +21,7 @@ class NetworkModel:
             return y_hat
         except Exception as e:
             raise NetworkSecurityException(e,sys)
+        
+    def predict_instance(self, data: List[List[float]]) -> List[int]:
+        transformed = self.preprocessor.transform(data)
+        return self.model.predict(transformed)
