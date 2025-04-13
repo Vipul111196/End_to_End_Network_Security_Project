@@ -57,8 +57,12 @@ class NetworkDataExtract(): # This class will contain the functions to extract t
 
             self.mongo_client=MongoClient(self.mongo_db_url)
             self.database = self.mongo_client[self.database]
-            
             self.collection=self.database[self.collection]
+
+            # Delete existing records
+            self.collection.delete_many({})
+            logging.info("Deleted previous records from the collection")
+
             self.collection.insert_many(self.records)
             logging.info("Data inserted into MongoDB")
             return(len(self.records))

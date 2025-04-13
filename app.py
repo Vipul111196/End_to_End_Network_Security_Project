@@ -20,6 +20,9 @@ from starlette.responses import RedirectResponse
 import pandas as pd
 from dotenv import load_dotenv
 
+from pydantic import BaseModel
+from typing import List
+
 # Load the environment variables
 load_dotenv()
 mongo_db_url = os.getenv("MONGO_DB_URL")
@@ -93,6 +96,26 @@ async def predict_route(request: Request,file: UploadFile = File(...)): # This f
         
     except Exception as e:
             raise NetworkSecurityException(e,sys)
+    
+# Define input schema
+class InstanceInput(BaseModel):
+    features: List[float]
+
+@app.post("/predict-instance")
+async def predict_instance(input: InstanceInput):
+    try:
+        preprocessor = load_object("final_model/preprocessor.pkl")
+        model = load_object("final_model/model.pkl")
+        network_model = NetworkModel(preprocessor=preprocessor, model=model)
+
+        # Convert to 2D array (as model expects 2D input)
+        input_data = [input.features]
+        prediction = network_model.predict_instance(input_data)
+
+        return {"prediction": int(prediction[0])}
+
+    except Exception as e:
+        raise NetworkSecurityException(e, sys)
     
 if __name__=="__main__":
     app_run(app,host="0.0.0.0",port=8080) # Run the FastAPI app on port 8000
