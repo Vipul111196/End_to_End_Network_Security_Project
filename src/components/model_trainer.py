@@ -22,7 +22,10 @@ import dagshub
 
 load_dotenv()
 
-# dagshub.init(repo_owner="Vipul111196", repo_name="End_to_End_Network_Security_Project", mlflow=True)
+repo_owner = os.getenv("DAGSHUB_REPO_OWNER")
+repo_name = os.getenv("DAGSHUB_REPO_NAME")
+token = os.environ.get("DAGSHUB_TOKEN")
+dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True, token=token)
 
 # os.environ["MLFLOW_TRACKING_URI"]= "http://127.0.0.1:5000" # Running Mlflow server on localhost
 
@@ -35,7 +38,7 @@ class ModelTrainer:
             raise NetworkSecurityException(e,sys)
         
     def track_mlflow(self,best_model,classificationmetric):
-        mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
+        # mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
         mlflow.set_experiment("Network Security Models") # Name of the experiment
         tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme # get the store type
         self.best_model=best_model
