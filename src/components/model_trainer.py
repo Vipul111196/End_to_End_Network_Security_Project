@@ -22,10 +22,13 @@ import dagshub
 
 load_dotenv()
 
-repo_owner = os.getenv("DAGSHUB_REPO_OWNER")
-repo_name = os.getenv("DAGSHUB_REPO_NAME")
-os.environ["DAGSHUB_TOKEN"] = os.getenv("DAGSHUB_TOKEN")
-dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
+# Set required env vars
+os.environ["MLFLOW_TRACKING_URI"] = f"https://dagshub.com/{os.getenv('DAGSHUB_REPO_OWNER')}/{os.getenv('DAGSHUB_REPO_NAME')}.mlflow"
+os.environ["MLFLOW_TRACKING_USERNAME"] = os.getenv("DAGSHUB_REPO_OWNER")  # Your DagsHub username
+os.environ["MLFLOW_TRACKING_PASSWORD"] = os.getenv("DAGSHUB_TOKEN")       # Your Personal Access Token
+
+# Set the tracking URI directly
+mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
 
 # os.environ["MLFLOW_TRACKING_URI"]= "http://127.0.0.1:5000" # Running Mlflow server on localhost
 
