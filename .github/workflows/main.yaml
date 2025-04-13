@@ -99,6 +99,7 @@ jobs:
           -e 'DAGSHUB_REPO_OWNER=${{ secrets.DAGSHUB_REPO_OWNER }}' \
           -e 'DAGSHUB_REPO_NAME=${{ secrets.DAGSHUB_REPO_NAME }}' \
           -e 'DAGSHUB_TOKEN=${{ secrets.DAGSHUB_TOKEN }}' \
+          -e 'TRAINING_BUCKET_NAME=${{ secrets.TRAINING_BUCKET_NAME }}' \
           ${{ secrets.AWS_ECR_LOGIN_URI }}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
       
       - name: Clean previous images and containers

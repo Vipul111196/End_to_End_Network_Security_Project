@@ -79,6 +79,7 @@ async def train_route(): # This function will be called when the /train route is
 @app.post("/predict") # This route will be used to make predictions
 async def predict_route(request: Request,file: UploadFile = File(...)): # This function will be called when the /predict route is hit
     try:
+        bucket_name = os.getenv("TRAINING_BUCKET_NAME")
         df=pd.read_csv(file.file)
         #print(df)
         download_from_s3(bucket_name, "final_model/latest/preprocessor.pkl", "final_model/preprocessor.pkl")
@@ -109,9 +110,10 @@ class InstanceInput(BaseModel):
 @app.post("/predict-instance")
 async def predict_instance(input: InstanceInput):
     try:
+        bucket_name = os.getenv("TRAINING_BUCKET_NAME")
         download_from_s3(bucket_name, "final_model/latest/preprocessor.pkl", "final_model/preprocessor.pkl")
         download_from_s3(bucket_name, "final_model/latest/model.pkl", "final_model/model.pkl")
-        
+
         preprocessor = load_object("final_model/preprocessor.pkl")
         model = load_object("final_model/model.pkl")
         network_model = NetworkModel(preprocessor=preprocessor, model=model)
