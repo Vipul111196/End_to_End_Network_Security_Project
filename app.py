@@ -1,111 +1,89 @@
-# Description: This file is the main file which is used to run the FastAPI application. It contains the routes for training and prediction.
-
-# Importing Required Libraries
 import sys
 import os
 import pymongo
+import certifi
+import pandas as pd
+from dotenv import load_dotenv
+from pydantic import BaseModel
+from typing import List
+from fastapi import FastAPI, File, UploadFile, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import Response
+from starlette.responses import RedirectResponse
+from uvicorn import run as app_run
+
 from src.exception.exception import NetworkSecurityException
 from src.logging.logger import logging
 from src.pipeline.training_pipeline import TrainingPipeline
 from src.constant.mlops_pipeline import DATA_INGESTION_COLLECTION_NAME
 from src.constant.mlops_pipeline import DATA_INGESTION_DATABASE_NAME
-from src.utils.main_utils.utils import load_object
+from src.utils.main_utils.utils import load_object, download_from_s3
 from src.utils.ml_utils.model.estimator import NetworkModel
-from src.utils.main_utils.utils import download_from_s3
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, File, UploadFile,Request
-from uvicorn import run as app_run
-from fastapi.responses import Response
-from starlette.responses import RedirectResponse
-import pandas as pd
-from dotenv import load_dotenv
 
-from pydantic import BaseModel
-from typing import List
-
-# Load the environment variables
 load_dotenv()
 mongo_db_url = os.getenv("MONGO_DB_URL")
-print(mongo_db_url)
 bucket_name = os.getenv("MODEL_BUCKET")
 
-
-# Connect to the MongoDB database
-import certifi
 ca = certifi.where()
-
-# Connect to the MongoDB database
 client = pymongo.MongoClient(mongo_db_url, tlsCAFile=ca)
 database = client[DATA_INGESTION_DATABASE_NAME]
 collection = database[DATA_INGESTION_COLLECTION_NAME]
 
-# Create a FastAPI app
 app = FastAPI()
-origins = ["*"] # Allow all origins
-
-# Add CORS middleware to the FastAPI app
-"""This middleware will allow all origins to make requests to the FastAPI app. 
-This is required as the FastAPI app will be running on a different port than the frontend application.
-The frontend application will be running on port 3000 and the FastAPI app will be running on port 8000.
-By default, browsers block requests from different origins due to security reasons.
-The CORS middleware will add the necessary headers to the response to allow requests from different origins."""
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Add routes to the FastAPI app
-from fastapi.templating import Jinja2Templates # 
 templates = Jinja2Templates(directory="./templates")
 
-# Define the routes
-@app.get("/", tags=["authentication"]) # This route will redirect to the documentation page
-async def index():
-    return RedirectResponse(url="/docs") # Redirect to the documentation page
 
-@app.get("/train") # This route will be used to train the model
-async def train_route(): # This function will be called when the /train route is hit
+@app.get("/", tags=["authentication"])
+async def index():
+    return RedirectResponse(url="/docs")
+
+
+@app.get("/train")
+async def train_route():
     try:
-        train_pipeline=TrainingPipeline() # Create an instance of the TrainingPipeline class
-        train_pipeline.run_pipeline() # Run the training pipeline
+        train_pipeline = TrainingPipeline()
+        train_pipeline.run_pipeline()
         return Response("Training is successful")
     except Exception as e:
-        raise NetworkSecurityException(e,sys)
-    
-@app.post("/predict") # This route will be used to make predictions
-async def predict_route(request: Request,file: UploadFile = File(...)): # This function will be called when the /predict route is hit
+        raise NetworkSecurityException(e, sys)
+
+
+@app.post("/predict")
+async def predict_route(request: Request, file: UploadFile = File(...)):
     try:
         bucket_name = os.getenv("TRAINING_BUCKET_NAME")
-        df=pd.read_csv(file.file)
-        #print(df)
+        df = pd.read_csv(file.file)
+
         download_from_s3(bucket_name, "final_model/latest/preprocessor.pkl", "final_model/preprocessor.pkl")
         download_from_s3(bucket_name, "final_model/latest/model.pkl", "final_model/model.pkl")
 
-        preprocesor=load_object("final_model/preprocessor.pkl")
-        final_model=load_object("final_model/model.pkl")
-        network_model = NetworkModel(preprocessor=preprocesor,model=final_model)
-        print(df.iloc[0])
+        preprocessor = load_object("final_model/preprocessor.pkl")
+        final_model = load_object("final_model/model.pkl")
+        network_model = NetworkModel(preprocessor=preprocessor, model=final_model)
+
         y_pred = network_model.predict(df)
-        print(y_pred)
         df['predicted_column'] = y_pred
-        print(df['predicted_column'])
-        #df['predicted_column'].replace(-1, 0)
-        #return df.to_json()
+
         df.to_csv('prediction_output/output.csv')
         table_html = df.to_html(classes='table table-striped')
-        #print(table_html)
         return templates.TemplateResponse("table.html", {"request": request, "table": table_html})
-        
+
     except Exception as e:
-            raise NetworkSecurityException(e,sys)
-    
-# Define input schema
+        raise NetworkSecurityException(e, sys)
+
+
 class InstanceInput(BaseModel):
     features: List[float]
+
 
 @app.post("/predict-instance")
 async def predict_instance(input: InstanceInput):
@@ -118,14 +96,12 @@ async def predict_instance(input: InstanceInput):
         model = load_object("final_model/model.pkl")
         network_model = NetworkModel(preprocessor=preprocessor, model=model)
 
-        # Convert to 2D array (as model expects 2D input)
-        input_data = [input.features]
-        prediction = network_model.predict_instance(input_data)
-
+        prediction = network_model.predict_instance([input.features])
         return {"prediction": int(prediction[0])}
 
     except Exception as e:
         raise NetworkSecurityException(e, sys)
-    
-if __name__=="__main__":
-    app_run(app,host="0.0.0.0",port=8080) # Run the FastAPI app on port 8000
+
+
+if __name__ == "__main__":
+    app_run(app, host="0.0.0.0", port=8080)
