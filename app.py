@@ -20,6 +20,7 @@ from src.constant.mlops_pipeline import DATA_INGESTION_COLLECTION_NAME
 from src.constant.mlops_pipeline import DATA_INGESTION_DATABASE_NAME
 from src.utils.main_utils.utils import load_object, download_from_s3
 from src.utils.ml_utils.model.estimator import NetworkModel
+from prometheus_fastapi_instrumentator import Instrumentator
 
 load_dotenv()
 mongo_db_url = os.getenv("MONGO_DB_URL")
@@ -40,6 +41,9 @@ app.add_middleware(
 )
 
 templates = Jinja2Templates(directory="./templates")
+
+# Prometheus metrics at /metrics
+Instrumentator().instrument(app).expose(app)
 
 
 @app.get("/", tags=["authentication"])
