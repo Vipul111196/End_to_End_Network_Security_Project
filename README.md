@@ -1,140 +1,161 @@
-# End to End - Network Security - Phishing Websites Detection Project
+# Phishing Website Detection — End-to-End MLOps Pipeline
 
-This project leverages machine learning to detect phishing websites by analyzing URL, HTML, and domain-based features. It is powered by **FastAPI**, **MLflow**, **DVC**, **DagsHub**, **MongoDB Atlas**, **AWS S3**, **Amazon ECR and ECS**, and **GitHub Actions** for a fully integrated and automated solution. The **Phishing Websites Dataset** used here was created by Rami M. Mohammad, Fadi Thabtah, and Lee McCluskey. The project enables training, testing, and deployment of a phishing detection model through a streamlined pipeline.
+ML pipeline for detecting phishing websites using URL, HTML, and domain-based features. Built with FastAPI, MLflow, MongoDB Atlas, AWS (S3/ECR/ECS), and a full monitoring stack (Prometheus + Grafana).
 
-## Table of Contents
-- [Project Overview](#project-overview)
-- [Technologies Used](#technologies-used)
-- [Dataset](#dataset)
-- [Features](#features)
-- [Usage](#usage)
-- [CI/CD Pipeline](#ci-cd-pipeline)
-- [References](#references)
-- [Contributing](#contributing)
-- [License](#license)
+## Architecture
 
----
+```
+                    GitHub Actions CI/CD
+                           |
+         ┌─────────────────┼─────────────────┐
+         v                 v                  v
+    Lint + Test     Build Docker Image    Deploy to AWS ECS
+                         |
+                    Amazon ECR
+                         |
+    ┌────────────────────┼────────────────────┐
+    v                    v                    v
+  FastAPI App       MLflow Server      Prometheus + Grafana
+  (port 8080)       (port 5000)        (ports 9090, 3000)
+    |                    |
+    v                    v
+  MongoDB Atlas     Experiment Tracking
+  (data source)     + Model Registry
+    |
+    v
+  AWS S3
+  (model artifacts)
+```
 
-## Project Overview
+## Pipeline Steps
 
-This project aims to classify websites as either phishing or legitimate by using machine learning models built on URL, HTML, and domain-based features. The solution includes a FastAPI-based application for training and testing, as well as comprehensive data versioning, experiment tracking, and deployment support. It integrates data processing with MongoDB Atlas and S3-hosted datasets managed by DVC and DagsHub, and it automates deployment to **Amazon ECR** and **ECS** for scalable containerized applications.
+```
+MongoDB Atlas (raw data)
+    |
+    v
+Data Ingestion ──> Data Validation ──> Data Transformation ──> Model Training
+                                                                    |
+                                                                    v
+                                                              MLflow Tracking
+                                                                    |
+                                                                    v
+                                                              AWS S3 (model artifacts)
+                                                                    |
+                                                                    v
+                                                              FastAPI Prediction API
+```
 
-## Technologies Used
+1. **Data Ingestion** — Pulls phishing dataset from MongoDB Atlas, splits into train/test
+2. **Data Validation** — Schema validation against `data_schema/schema.yaml`, drift detection
+3. **Data Transformation** — Feature engineering with KNN Imputer, preprocessing pipeline
+4. **Model Training** — Trains classifiers, logs metrics to MLflow/DagsHub, uploads best model to S3
 
-This project utilizes the following tools and frameworks for a fully automated, scalable solution:
+## Tech Stack
 
-- **FastAPI**: Serves as the web framework for API endpoints, allowing users to train and test the phishing detection model.
-- **MLflow**: Tracks model experiments, registers the best model, and stores experiment metrics for evaluation and improvement.
-- **DVC**: Handles data versioning to ensure reliable dataset management and tracks processed data changes over time.
-- **DagsHub**: Hosts processed data for easy access and version control, integrating with DVC for tracking changes stored in an AWS S3 bucket.
-- **MongoDB Atlas**: Stores processed data in a secure, cloud-based NoSQL database, providing a source of truth for preprocessed data used in training.
-- **Amazon ECR and ECS**: Manages and deploys Docker images, with ECR serving as the image registry and ECS hosting the model for live inference and scalability.
-- **Docker**: A Dockerfile is used to containerize the FastAPI application, ensuring consistent deployment across environments.
-- **GitHub Actions**: Facilitates CI/CD workflows to build, test, and deploy the application on AWS with automated integration.
+| Component | Technology |
+|---|---|
+| API | FastAPI |
+| ML Training | scikit-learn |
+| Experiment Tracking | MLflow + DagsHub |
+| Data Versioning | DVC |
+| Database | MongoDB Atlas |
+| Model Storage | AWS S3 |
+| Container Registry | Amazon ECR |
+| Deployment | Amazon ECS |
+| Monitoring | Prometheus + Grafana |
+| CI/CD | GitHub Actions |
+| Containerization | Docker + docker-compose |
+
+## Quick Start
+
+### Local
+
+```bash
+git clone https://github.com/Vipul111196/End_to_End_Network_Security_Project.git
+cd End_to_End_Network_Security_Project
+
+cp .env.example .env   # fill in your credentials
+make install
+
+# Train the model
+make train
+
+# Run the API
+make run               # http://localhost:8080/docs
+```
+
+### Docker (full stack with monitoring)
+
+```bash
+cp .env.example .env   # fill in your credentials
+make docker-up
+
+# Access points:
+# API:        http://localhost:8080/docs
+# MLflow:     http://localhost:5000
+# Prometheus: http://localhost:9090
+# Grafana:    http://localhost:3000 (admin/admin)
+```
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/docs` | Swagger UI |
+| GET | `/train` | Trigger training pipeline |
+| POST | `/predict` | Upload CSV for batch prediction |
+| POST | `/predict-instance` | Single instance prediction |
+| GET | `/metrics` | Prometheus metrics |
+
+## Monitoring
+
+The Grafana dashboard tracks:
+- **Request rate** per endpoint
+- **Response latency** (p95)
+- **Requests in progress**
+- **Error rate** (5xx)
+
+Prometheus scrapes the `/metrics` endpoint exposed by FastAPI every 15s.
 
 ## Dataset
 
-The dataset, Phishing Websites Dataset, contains several feature columns that indicate various attributes and characteristics of URLs. These features include:
+Phishing Websites Dataset by Rami M. Mohammad, Fadi Thabtah, and Lee McCluskey. Features include URL structure analysis, HTML/JavaScript indicators, and domain registration data.
 
-- **Address Bar-based Features:** Checks for IP addresses, URL length, and the presence of certain symbols.
-- **HTML and JavaScript-based Features:** Includes indicators like the use of iframes, JavaScript events like onmouseover, and the disabling of right-clicks.
-- **Domain-based Features:** Considers domain registration length, age, DNS records, and web traffic.
-  
-This dataset has been invaluable in building and testing a model to distinguish between phishing and legitimate websites.
+## Project Structure
 
-## Features
-
-Each row in the dataset represents a website and its specific characteristics. The following are some of the key features used in this project:
-
-- **having_IP_Address:** Indicates if an IP address is used instead of a domain name.
-- **URL_Length:** Measures the URL length, which can indicate if the URL is suspicious.
-- **Shortining_Service:** Identifies the use of URL shortening services.
-- **having_At_Symbol:** Checks for the presence of the "@" symbol.
-- **double_slash_redirecting:** Indicates double slash redirection in the URL.
-- **Prefix_Suffix:** Flags the use of suspicious prefixes or suffixes.
-- **having_Sub_Domain:** Detects the use of multiple subdomains.
-- **SSLfinal_State:** Examines the SSL certificate to evaluate security.
-- **Domain_registeration_length:** Considers domain registration duration.
-- **Favicon:** Identifies if the favicon is loaded from a different domain.
-- **HTTPS_token:** Checks if "HTTPS" is used in the domain name.
-- **web_traffic:** Measures web traffic data.
-- **Google_Index:** Determines if the URL is indexed by Google.
-- **Result:** The final classification, identifying the website as phishing or legitimate.
-These and other features collectively contribute to the detection of phishing websites by identifying common patterns and anomalies in the URLs and site content.
-
-## Usage
-
-### Setup
-
-To use this project:
-
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/Vipul111196/End_to_End_Network_Security_Project.git
-   cd End_to_End_Network_Security_Project
-   ```
-
-2. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Run the FastAPI Application**:
-   The FastAPI app provides an interface for training and testing the phishing detection model. You can start it with:
-   ```bash
-   uvicorn app.main:app --reload
-   ```
-
-4. **Data Versioning with DVC**:
-   The dataset is versioned using DVC and hosted on **DagsHub** with an S3 bucket as the storage backend. To pull the latest version:
-   ```bash
-   dvc pull
-   ```
-
-5. **Experiment Tracking with MLflow**:
-   Experiments are tracked in **MLflow**, and the best model is registered for deployment. You can view experiment metrics by running in DagsHub
-
-6. **Database Integration**:
-   - Processed data is stored in **MongoDB Atlas**, making it accessible for model training and testing.
-   - Data from MongoDB Atlas can be fetched and processed as part of the ETL pipeline.
-
-### Docker Setup
-
-The application is containerized using Docker. You can build and run the Docker image with:
-```bash
-docker build -t End_to_End_Network_Security_Project .
-docker run -p 8080:8080 End_to_End_Network_Security_Project
+```
+├── app.py                          # FastAPI application
+├── main.py                         # Training pipeline entry point
+├── src/
+│   ├── components/
+│   │   ├── data_ingestion.py       # MongoDB data extraction
+│   │   ├── data_validation.py      # Schema + drift checks
+│   │   ├── data_transformation.py  # Feature engineering
+│   │   └── model_trainer.py        # Model training + MLflow logging
+│   ├── pipeline/
+│   │   └── training_pipeline.py    # Orchestrates all components
+│   ├── entity/                     # Config + artifact dataclasses
+│   ├── cloud/                      # S3 sync utilities
+│   ├── utils/                      # ML metrics, model loading
+│   ├── exception/                  # Custom exception handling
+│   └── logging/                    # Logger config
+├── monitoring/
+│   ├── prometheus.yml              # Prometheus scrape config
+│   └── grafana/                    # Grafana dashboards + provisioning
+├── data_engineering_pipeline/      # ETL scripts for MongoDB
+├── .github/workflows/main.yaml    # CI/CD pipeline
+├── Dockerfile
+├── docker-compose.yml
+├── Makefile
+└── .env.example
 ```
 
-## CI/CD Pipeline
+## CI/CD
 
-This project includes a **GitHub Actions** workflow for CI/CD to ensure smooth integration, testing, and deployment. The workflow includes the following steps:
-
-1. **Continuous Integration (CI)**:
-   - Lints code to enforce code standards.
-   - Runs unit tests to ensure code correctness.
-
-2. **Continuous Delivery (CD)**:
-   - Builds and tags a Docker image.
-   - Pushes the Docker image to **Amazon ECR** (Elastic Container Registry).
-   - Deploys the latest image to **AWS ECS** (Elastic Container Service) to serve the application.
-
-The GitHub Actions CI/CD pipeline manages automated deployment, scaling, and updating of the phishing detection application on AWS, ensuring high availability for users.
-
-## References
-
-This project is based on research by:
-
-- **Rami M. Mohammad**, University of Huddersfield
-- **Fadi Thabtah**, Canadian University of Dubai
-- **Lee McCluskey**, University of Huddersfield
-
-For more details, refer to the "Phishing Websites Features" documentation included with the dataset.
-
-## Contributing
-
-Contributions are welcome! Please fork the repository and submit a pull request with your changes.
+GitHub Actions pipeline on push to `main`:
+1. **CI** — Lint + unit tests
+2. **CD** — Build Docker image, push to ECR, deploy to ECS
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for more details.
+MIT
